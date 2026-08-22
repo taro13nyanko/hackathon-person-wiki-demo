@@ -294,8 +294,12 @@ class WikiHandler(SimpleHTTPRequestHandler):
             self.send_json({"ok": False, "error": str(exc)}, status=400)
         except Exception as exc:
             print(f"[wiki] AI generation failed: {exc}")
+            upstream_code = ""
+            match = re.search(r"(?:Gemini|AI) API error (\d{3})", str(exc))
+            if match:
+                upstream_code = f"（外部AI: {match.group(1)}）"
             self.send_json(
-                {"ok": False, "error": "AI生成に失敗しました。しばらく待ってからもう一度お試しください。"},
+                {"ok": False, "error": f"AI生成に失敗しました{upstream_code}。しばらく待ってからもう一度お試しください。"},
                 status=502,
             )
 
