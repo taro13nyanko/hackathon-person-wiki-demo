@@ -1325,7 +1325,11 @@ html = r"""<!DOCTYPE html>
   .infobox td{padding:5px 6px;border-top:1px solid #eaecf0;vertical-align:top;}
   .infobox td.k{color:#54595d;width:38%;}
   #article h3{font-size:17px;border-bottom:1px solid #eaecf0;padding-bottom:3px;margin-top:22px;}
-  #article .section-text{font-size:14px;line-height:1.9;white-space:pre-wrap;}
+  #article .section-text{font-size:14px;line-height:1.9;white-space:normal;}
+  .md-line{min-height:1.4em;}
+  .md-list-item{padding-left:1.25em;text-indent:-1.05em;}
+  .md-subheading{display:block;font-weight:bold;font-size:1.05em;margin-top:.55em;}
+  .section-text code,.summary code{font-family:Consolas,monospace;background:#eaecf0;border:1px solid #c8ccd1;border-radius:2px;padding:1px 4px;}
   /* 2026-07-29: 履歴欄の表示。標準モードは従来通り「- 日付」の箇条書き風、
      ビジュアルモードはドット+縦線のタイムライン表示に切り替える。 */
   .hist-list{font-size:14px;line-height:1.7;}
@@ -2347,7 +2351,7 @@ function showSearchResults(){
 }
 
 function escapeHtml(s){
-  return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
 
 // build one regex that matches [[wikilink]] OR any known alias, longest alias first
@@ -3473,6 +3477,22 @@ function editorToBasic(text){
     return pos > 0 ? [line.slice(0,pos).trim(),line.slice(pos+1).trim()] : ["メモ",line];
   });
 }
+
+function renderMarkdown(text){
+  if(!text) return "";
+  const inline = (line) => linkify(line)
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+  return String(text).split("\n").map(line => {
+    const heading = line.match(/^#{1,6}\s+(.+)$/);
+    if(heading) return `<div class="md-line"><span class="md-subheading">${inline(heading[1])}</span></div>`;
+    const bullet = line.match(/^\s*[-*+]\s+(.+)$/);
+    if(bullet) return `<div class="md-list-item">• ${inline(bullet[1])}</div>`;
+    if(!line.trim()) return '<div class="md-line"><br></div>';
+    return `<div class="md-line">${inline(line)}</div>`;
+  }).join("");
+}
 function makeWikiId(name){
   const base = String(name || "人物").trim().replace(/[\\/#?]/g,"_");
   let id = base, n = 2;
@@ -3535,7 +3555,7 @@ function showArticle(id){
   // 2026-08-12: このページ内で[^N]が出現するたびにoccTrackerへ{n: 出現回数}を記録し、
   // 各出現箇所に一意なidを振る（withFootnoteRefs参照）。出典欄の「↩」からここへ戻れるようにする。
   const footnoteOcc = {};
-  const fn = (t) => withFootnoteRefs(linkify(t), id, footnoteOcc);
+  const fn = (t) => withFootnoteRefs(renderMarkdown(t), id, footnoteOcc);
   let infobox = "";
   if(r.basic.length){
     const catColor = categoryColor(r.category);
@@ -3588,7 +3608,7 @@ function showArticle(id){
     <button class="wiki-edit-btn" style="margin-left:6px;" onclick="openWikiEditor('${id.replace(/'/g,"\\'")}')">編集</button>
     ${infobox}
     <h1>${escapeHtml(dispName(r.title))}</h1>
-    <div class="summary">${linkify(r.summary)}</div>
+    <div class="summary">${renderMarkdown(r.summary)}</div>
     ${bodyHtml}
     ${related ? `<h3>関連</h3><div id="related">${related}</div>` : ""}
     ${footnotesHtml}
