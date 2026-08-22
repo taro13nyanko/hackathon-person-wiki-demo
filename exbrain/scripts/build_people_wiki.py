@@ -1392,7 +1392,7 @@ html = r"""<!DOCTYPE html>
   .ff-shell{max-width:860px;margin:0 auto;}
   .ff-topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;}
   .ff-kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#667085;font-weight:700;}
-  .ff-stage{position:relative;overflow:hidden;min-height:390px;padding:48px;border-radius:24px;
+  .ff-stage{position:relative;overflow:hidden;min-height:390px;padding:48px;border-radius:24px;cursor:pointer;
     color:#fff;background:linear-gradient(135deg,#111827 0%,#26324a 58%,#475569 100%);
     box-shadow:0 18px 50px rgba(17,24,39,.22);display:flex;flex-direction:column;justify-content:center;}
   .ff-stage::after{content:'≫';position:absolute;right:24px;bottom:-28px;font-size:170px;font-weight:900;
@@ -1403,9 +1403,9 @@ html = r"""<!DOCTYPE html>
   .ff-slide-title{font-size:34px;line-height:1.25;margin:0 0 20px;max-width:700px;}
   .ff-slide-text{font-size:18px;line-height:1.85;max-width:700px;white-space:pre-line;color:#f1f5f9;}
   .ff-people{margin-top:22px;font-size:13px;color:#cbd5e1;}
-  .ff-progress{flex:1;height:5px;border-radius:999px;background:#dfe3e8;overflow:hidden;}
-  .ff-progress span{display:block;height:100%;background:#111827;transition:width .3s ease;}
-  .ff-counter{font-size:12px;color:#667085;min-width:48px;text-align:right;}
+  .ff-dots{display:flex;justify-content:center;gap:9px;margin:16px 0 4px;}
+  .ff-dot{width:9px;height:9px;border-radius:50%;background:#cbd2dc;transition:background .2s,transform .2s;}
+  .ff-dot.active{background:#111827;transform:scale(1.25);}
   .ff-notice{margin:12px 0;padding:10px 12px;border-radius:8px;background:#fff7d6;color:#5f4b00;font-size:13px;}
   .ff-modal-backdrop{position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;padding:20px;}
   .ff-modal-backdrop.hidden{display:none;}
@@ -1463,7 +1463,7 @@ html = r"""<!DOCTYPE html>
 <body>
 <div id="layout">
   <div id="sidebar">
-    <h2><span class="wiki-title-text" onclick="goHome()" title="ホームへ戻る">人物Wiki</span>__LAST_UPDATE_BADGE__<span class="wiki-title-actions"><button id="menuToggle" onclick="toggleSidebar()">絞り込み</button></span></h2>
+    <h2><span class="wiki-title-text" onclick="goHome()" title="ホームへ戻る">人物Wiki</span><span class="wiki-title-actions"><button id="menuToggle" onclick="toggleSidebar()">絞り込み</button></span></h2>
     <input id="search" placeholder="名前・本文で検索..." oninput="renderList()">
     <div id="toolbar">
       <button id="aiSuggestBtn" data-toolbar-key="aiSuggest" onclick="showAiSuggestions()" title="AIからの提案">💡</button>
@@ -2164,13 +2164,13 @@ function displayFastForwardDeck(){
   document.getElementById("article").innerHTML = `
     <div class="ff-shell">
       <div class="ff-topbar"><div><div class="ff-kicker">≫ TIME COMPRESSION</div><h1 style="margin:4px 0 0;">早送り</h1></div><button class="star-btn" onclick="history.back()">元のページへ戻る</button></div>
-      <div id="ffStage" class="ff-stage"><div id="ffSlideBody" class="ff-slide-body"></div></div>
+      <div id="ffStage" class="ff-stage" onclick="advanceFastForward()" title="クリックして次へ"><div id="ffSlideBody" class="ff-slide-body"></div></div>
+      <div id="ffDots" class="ff-dots">${ffDeck.map((_,i)=>`<span class="ff-dot${i===0?' active':''}"></span>`).join("")}</div>
       <div class="ff-notice">${escapeHtml(ffStatusNotice)}</div>
     </div>`;
   document.getElementById("main").scrollTop = 0;
   renderList();
   renderFastForwardSlide();
-  startFastForward();
 }
 
 function renderFastForwardSlide(){
@@ -2184,6 +2184,13 @@ function renderFastForwardSlide(){
   body.innerHTML = `<div class="ff-year">${escapeHtml(s.year)}</div>${s.title ? `<h2 class="ff-slide-title" ${ffEditing?'contenteditable="true"':''} oninput="updateCurrentSlide('title',this.innerText)">${escapeHtml(s.title)}</h2>` : ""}<div class="ff-slide-text" ${ffEditing?'contenteditable="true"':''} oninput="updateCurrentSlide('text',this.innerText)">${escapeHtml(s.text)}</div>${s.people ? `<div class="ff-people">${escapeHtml(s.people)}</div>` : ""}${s.sources?.length ? `<div class="ff-sources">根拠: ${s.sources.map(escapeHtml).join(" / ")}</div>` : ""}`;
   stage.classList.toggle("ff-editing", ffEditing);
   stage.classList.add("ff-animate");
+  document.querySelectorAll("#ffDots .ff-dot").forEach((dot,i) => dot.classList.toggle("active", i === ffIndex));
+}
+
+function advanceFastForward(){
+  if(!ffDeck.length) return;
+  ffIndex = (ffIndex + 1) % ffDeck.length;
+  renderFastForwardSlide();
 }
 
 function ffMove(delta){
