@@ -182,7 +182,7 @@ def call_gemini(request_data: dict) -> dict:
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY が設定されていません")
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    model = effective_gemini_model()
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     body = {
         "systemInstruction": {"parts": [{"text": AI_INSTRUCTIONS}]},
@@ -216,6 +216,12 @@ def call_ai(request_data: dict) -> dict:
     if os.environ.get("GEMINI_API_KEY", "").strip():
         return call_gemini(request_data)
     return call_openai(request_data)
+
+
+def effective_gemini_model() -> str:
+    configured = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash").strip()
+    legacy_models = {"gemini-2.5-flash", "models/gemini-2.5-flash"}
+    return "gemini-3.6-flash" if configured in legacy_models else configured.removeprefix("models/")
 
 
 class WikiHandler(SimpleHTTPRequestHandler):
@@ -261,7 +267,7 @@ class WikiHandler(SimpleHTTPRequestHandler):
                 "ok": True,
                 "aiConfigured": gemini_configured or openai_configured,
                 "provider": "gemini" if gemini_configured else ("openai" if openai_configured else "none"),
-                "model": os.environ.get("GEMINI_MODEL", "gemini-2.5-flash") if gemini_configured else os.environ.get("OPENAI_MODEL", "gpt-5-mini"),
+                "model": effective_gemini_model() if gemini_configured else os.environ.get("OPENAI_MODEL", "gpt-5-mini"),
             })
             return
         super().do_GET()
