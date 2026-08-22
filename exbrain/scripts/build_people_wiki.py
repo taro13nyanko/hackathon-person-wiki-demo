@@ -1466,26 +1466,20 @@ html = r"""<!DOCTYPE html>
     <h2><span class="wiki-title-text" onclick="goHome()" title="ホームへ戻る">人物Wiki</span><span class="wiki-title-actions"><button id="menuToggle" onclick="toggleSidebar()">絞り込み</button></span></h2>
     <input id="search" placeholder="名前・本文で検索..." oninput="renderList()">
     <div id="toolbar">
-      <button id="aiSuggestBtn" data-toolbar-key="aiSuggest" onclick="showAiSuggestions()" title="AIからの提案">💡</button>
       <button id="featuredBtn" data-toolbar-key="featured" onclick="showFeaturedList()">⭐</button>
       <button id="recentBtn" data-toolbar-key="recent" onclick="showRecentUpdates()">🕘</button>
       <button id="dormantBtn" data-toolbar-key="dormant" onclick="showDormantCheck()">🤝</button>
       <button id="birthdayBtn" data-toolbar-key="birthday" onclick="showBirthdays()">🎂</button>
       <button id="upcomingBtn" data-toolbar-key="upcoming" onclick="showUpcomingEvents()" title="今後の予定">📅</button>
-      <button id="charterBtn" data-toolbar-key="charter" onclick="showCharter()" title="定款">📜</button>
-      <button id="structureBtn" data-toolbar-key="structure" onclick="showWikiStructure()" title="このWikiの構造">🧭</button>
     </div>
     <button id="toolbarSettingsBtn" onclick="toggleToolbarSettings()">⚙️ 表示するアイコンを選ぶ</button>
     <div id="toolbarSettingsPanel" class="collapsed">
       <div>左側ツールバーに表示するアイコン</div>
-      <label><input type="checkbox" data-toolbar-setting="aiSuggest" onchange="saveToolbarSettings()"> 💡 AIからの提案</label>
       <label><input type="checkbox" data-toolbar-setting="featured" onchange="saveToolbarSettings()"> ⭐ 主要人物</label>
       <label><input type="checkbox" data-toolbar-setting="recent" onchange="saveToolbarSettings()"> 🕘 最近の更新</label>
       <label><input type="checkbox" data-toolbar-setting="dormant" onchange="saveToolbarSettings()"> 🤝 ごぶさたチェック</label>
       <label><input type="checkbox" data-toolbar-setting="birthday" onchange="saveToolbarSettings()"> 🎂 誕生日</label>
       <label><input type="checkbox" data-toolbar-setting="upcoming" onchange="saveToolbarSettings()"> 📅 今後の予定</label>
-      <label><input type="checkbox" data-toolbar-setting="charter" onchange="saveToolbarSettings()"> 📜 定款</label>
-      <label><input type="checkbox" data-toolbar-setting="structure" onchange="saveToolbarSettings()"> 🧭 Wikiの構造</label>
       <div class="toolbar-settings-actions"><button onclick="setAllToolbarSettings(true)">すべて表示</button><button onclick="setAllToolbarSettings(false)">すべて非表示</button></div>
     </div>
     <button id="filterToggleBtn" onclick="toggleFilterPanel()">🔧 詳細フィルタ ▾</button>
@@ -1611,7 +1605,7 @@ function toggleSidebar(){
 
 // 2026-08-17: 左サイドバーのツールバーアイコンをユーザーごとに表示/非表示設定できるようにする。
 const TOOLBAR_SETTINGS_KEY = "wikiToolbarVisibilityByPerspective";
-const TOOLBAR_DEFAULTS = {aiSuggest:true, featured:true, recent:true, dormant:true, birthday:true, upcoming:true, charter:true, structure:true};
+const TOOLBAR_DEFAULTS = {featured:true, recent:true, dormant:true, birthday:true, upcoming:true};
 function currentToolbarPerspective(){
   if(personFilter.kokubo && !personFilter.ota) return "kokubo";
   if(personFilter.ota && !personFilter.kokubo) return "ota";
@@ -3581,7 +3575,7 @@ function route(){
     return;
   }
   if(rawHash === 'ai-suggest'){
-    showAiSuggestions();
+    showHome();
     return;
   }
   if(rawHash === 'featured'){
@@ -3593,7 +3587,7 @@ function route(){
     return;
   }
   if(rawHash === 'charter'){
-    showCharter();
+    showHome();
     return;
   }
   if(rawHash === 'dormant'){
@@ -3609,7 +3603,7 @@ function route(){
     return;
   }
   if(rawHash === 'structure'){
-    showWikiStructure();
+    showHome();
     return;
   }
   if(rawHash === 'search'){
