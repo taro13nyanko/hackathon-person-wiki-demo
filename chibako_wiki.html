@@ -288,14 +288,15 @@
   .fast-forward-btn:hover{background:#26324a;transform:translateY(-1px);}
   .fast-forward-btn.secondary{width:100%;margin:7px 0;background:#fff;color:#111827;border:1px solid #aeb7c7;box-shadow:none;}
   .fast-forward-btn:disabled{opacity:.42;cursor:not-allowed;transform:none;}
+  .ff-symbol{display:inline-flex;align-items:center;gap:.12em;margin-right:.28em;vertical-align:-.08em;color:currentColor;}
+  .ff-symbol i{display:block;width:0;height:0;border-top:.46em solid transparent;border-bottom:.46em solid transparent;border-left:.72em solid currentColor;}
   .ff-shell{max-width:860px;margin:0 auto;}
   .ff-topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;}
   .ff-kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#667085;font-weight:700;}
   .ff-stage{position:relative;overflow:hidden;min-height:390px;padding:48px;border-radius:24px;cursor:pointer;
     color:#fff;background:linear-gradient(135deg,#111827 0%,#26324a 58%,#475569 100%);
     box-shadow:0 18px 50px rgba(17,24,39,.22);display:flex;flex-direction:column;justify-content:center;}
-  .ff-stage::after{content:'≫';position:absolute;right:24px;bottom:-28px;font-size:170px;font-weight:900;
-    color:rgba(255,255,255,.075);line-height:1;}
+  .ff-watermark{position:absolute;right:25px;bottom:18px;font-size:92px;color:rgba(255,255,255,.075);pointer-events:none;}
   .ff-stage.ff-animate .ff-slide-body{animation:ffEnter .42s ease both;}
   @keyframes ffEnter{from{opacity:0;transform:translateX(34px)}to{opacity:1;transform:translateX(0)}}
   .ff-year{font-size:14px;letter-spacing:.12em;color:#cbd5e1;font-weight:700;margin-bottom:12px;}
@@ -413,7 +414,7 @@
       <div id="count"></div>
       <button id="expandResultsBtn" onclick="showSearchResults()">🔎 大きく表示</button>
     </div>
-    <button id="fastForwardFilterBtn" class="fast-forward-btn secondary" onclick="fastForwardActiveFilter()">≫ 選択中を早送り</button>
+    <button id="fastForwardFilterBtn" class="fast-forward-btn secondary" onclick="fastForwardActiveFilter()"><span class="ff-symbol" aria-hidden="true"><i></i><i></i></span>選択中を早送り</button>
     <div id="list"></div>
   </div>
   <div id="main"><div id="article"></div></div>
@@ -422,7 +423,7 @@
 </div>
 <div id="ffConfigModal" class="ff-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="ffConfigTitle">
   <div class="ff-config">
-    <h2 id="ffConfigTitle">≫ 早送りをつくる</h2>
+    <h2 id="ffConfigTitle"><span class="ff-symbol" aria-hidden="true"><i></i><i></i></span>早送りをつくる</h2>
     <p class="ff-config-sub">期間とグループを選ぶと、Wikiの記録を3枚にまとめます。</p>
     <div class="ff-form-grid">
       <div class="ff-field"><label for="ffStartDate">開始日</label><input id="ffStartDate" type="date"></div>
@@ -859,7 +860,7 @@ function renderList(){
     const usable = !!targetCategory && records.some(r => r.category === targetCategory || (r.extraCategories || []).includes(targetCategory));
     ffBtn.hidden = !usable;
     ffBtn.disabled = !usable;
-    ffBtn.textContent = usable ? `≫ ${targetCategory}を早送り` : "";
+    ffBtn.innerHTML = usable ? `<span class="ff-symbol" aria-hidden="true"><i></i><i></i></span>${escapeHtml(targetCategory)}を早送り` : "";
     ffBtn.dataset.targetCategory = targetCategory || "";
   }
   document.getElementById("list").innerHTML = filtered.map(r => {
@@ -1151,8 +1152,8 @@ function displayFastForwardDeck(){
   ffIndex = 0;
   document.getElementById("article").innerHTML = `
     <div class="ff-shell">
-      <div class="ff-topbar"><div><div class="ff-kicker">≫ TIME COMPRESSION</div><h1 style="margin:4px 0 0;">早送り</h1></div><button class="star-btn" onclick="history.back()">元のページへ戻る</button></div>
-      <div id="ffStage" class="ff-stage" onclick="advanceFastForward()" title="クリックして次へ"><div id="ffSlideBody" class="ff-slide-body"></div></div>
+      <div class="ff-topbar"><div><div class="ff-kicker"><span class="ff-symbol" aria-hidden="true"><i></i><i></i></span>TIME COMPRESSION</div><h1 style="margin:4px 0 0;">早送り</h1></div><button class="star-btn" onclick="history.back()">元のページへ戻る</button></div>
+      <div id="ffStage" class="ff-stage" onclick="advanceFastForward()" title="クリックして次へ"><div id="ffSlideBody" class="ff-slide-body"></div><span class="ff-symbol ff-watermark" aria-hidden="true"><i></i><i></i></span></div>
       <div id="ffDots" class="ff-dots">${ffDeck.map((_,i)=>`<span class="ff-dot${i===0?' active':''}"></span>`).join("")}</div>
       <div class="ff-notice">${escapeHtml(ffStatusNotice)}</div>
     </div>`;
@@ -2502,7 +2503,7 @@ function showArticle(id){
   document.getElementById("article").innerHTML = `
     <div class="badge">${escapeHtml(r.category)}</div>
     <button class="star-btn ${isFeatured ? 'active' : ''}" onclick="toggleFeatured('${id.replace(/'/g,"\\'")}')">${isFeatured ? '★ 主要人物' : '☆ 主要人物に追加'}</button>
-    <button class="fast-forward-btn" style="margin-left:6px;" onclick="openFastForwardConfig('person','${id.replace(/'/g,"\\'")}')">≫ ${r.id === '神谷ハル' ? '自分の今までを早送り' : (isGroupRecord(r) ? 'このコミュニティを早送り' : 'この人との関係を早送り')}</button>
+    <button class="fast-forward-btn" style="margin-left:6px;" onclick="openFastForwardConfig('person','${id.replace(/'/g,"\\'")}')"><span class="ff-symbol" aria-hidden="true"><i></i><i></i></span>${r.id === '神谷ハル' ? '自分の今までを早送り' : (isGroupRecord(r) ? 'このコミュニティを早送り' : 'この人との関係を早送り')}</button>
     <button class="wiki-edit-btn" style="margin-left:6px;" onclick="openWikiEditor('${id.replace(/'/g,"\\'")}')">編集</button>
     ${infobox}
     <h1>${escapeHtml(dispName(r.title))}</h1>
@@ -2530,7 +2531,7 @@ function showHome(){
       <div class="home-features">
         <div class="home-feature"><div class="home-feature-icon">👤</div><h3>人を覚えておく</h3><p>人物ごとに特徴、出来事、現在の関係を一つのページへ蓄積します。</p></div>
         <div class="home-feature"><div class="home-feature-icon">⌕</div><h3>人を探す</h3><p>名前、所属、出来事から人物を検索し、関連する人のページへたどれます。</p></div>
-        <div class="home-feature"><div class="home-feature-icon">≫</div><h3>時間を早送りする</h3><p>期間とグループを選ぶと、蓄積した記録をAIが3枚の物語にまとめます。</p></div>
+        <div class="home-feature"><div class="home-feature-icon"><span class="ff-symbol" aria-hidden="true"><i></i><i></i></span></div><h3>時間を早送りする</h3><p>期間とグループを選ぶと、蓄積した記録をAIが3枚の物語にまとめます。</p></div>
       </div>
       <div class="home-demo-route"><strong>おすすめの体験順</strong><br>「自分のページを見る」→ 気になる人物との関係を開く →「早送り」で時間の変化を振り返る</div>
     </section>`;
