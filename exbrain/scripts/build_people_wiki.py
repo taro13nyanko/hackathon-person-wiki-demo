@@ -1519,7 +1519,7 @@ html = r"""<!DOCTYPE html>
       <div class="ff-field"><label for="ffStartDate">開始日</label><input id="ffStartDate" type="date"></div>
       <div class="ff-field"><label for="ffEndDate">終了日</label><input id="ffEndDate" type="date"></div>
       <div class="ff-field"><label for="ffGroupSelect">グループ</label><select id="ffGroupSelect"></select></div>
-      <div class="ff-field full"><label for="ffNotes">備考（任意）</label><textarea id="ffNotes" rows="3" placeholder="追加の希望がある場合だけ入力してください"></textarea></div>
+      <div class="ff-field full"><label for="ffNotes">備考（任意）</label><textarea id="ffNotes" rows="3" placeholder="追加の希望があれば"></textarea></div>
     </div>
     <div class="ff-modal-actions"><span id="ffGenerateStatus"></span><button onclick="closeFastForwardConfig()">キャンセル</button><button id="ffGenerateBtn" class="primary" onclick="generateAiFastForward()">AIで生成</button></div>
   </div>

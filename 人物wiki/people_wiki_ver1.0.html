@@ -358,7 +358,7 @@
 <body>
 <div id="layout">
   <div id="sidebar">
-    <h2><span class="wiki-title-text" onclick="goHome()" title="ホームへ戻る">人物Wiki</span><span id="lastUpdateBadge" class="last-update-badge" title="2026-08-22 15:04（制作チーム）">最終更新: 制作チーム</span><span class="wiki-title-actions"><button id="menuToggle" onclick="toggleSidebar()">絞り込み</button></span></h2>
+    <h2><span class="wiki-title-text" onclick="goHome()" title="ホームへ戻る">人物Wiki</span><span id="lastUpdateBadge" class="last-update-badge" title="2026-08-22 15:06（制作チーム）">最終更新: 制作チーム</span><span class="wiki-title-actions"><button id="menuToggle" onclick="toggleSidebar()">絞り込み</button></span></h2>
     <input id="search" placeholder="名前・本文で検索..." oninput="renderList()">
     <div id="toolbar">
       <button id="aiSuggestBtn" data-toolbar-key="aiSuggest" onclick="showAiSuggestions()" title="AIからの提案">💡</button>
@@ -414,7 +414,7 @@
       <div class="ff-field"><label for="ffStartDate">開始日</label><input id="ffStartDate" type="date"></div>
       <div class="ff-field"><label for="ffEndDate">終了日</label><input id="ffEndDate" type="date"></div>
       <div class="ff-field"><label for="ffGroupSelect">グループ</label><select id="ffGroupSelect"></select></div>
-      <div class="ff-field full"><label for="ffNotes">備考（任意）</label><textarea id="ffNotes" rows="3" placeholder="追加の希望がある場合だけ入力してください"></textarea></div>
+      <div class="ff-field full"><label for="ffNotes">備考（任意）</label><textarea id="ffNotes" rows="3" placeholder="追加の希望があれば"></textarea></div>
     </div>
     <div class="ff-modal-actions"><span id="ffGenerateStatus"></span><button onclick="closeFastForwardConfig()">キャンセル</button><button id="ffGenerateBtn" class="primary" onclick="generateAiFastForward()">AIで生成</button></div>
   </div>
