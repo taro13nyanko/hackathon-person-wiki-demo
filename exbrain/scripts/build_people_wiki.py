@@ -2141,7 +2141,8 @@ async function generateAiFastForward(){
   try{
     if(location.protocol === "file:") throw new Error("AIバックエンドへ接続するには start_wiki.bat から起動してください");
     status.textContent = "AIが物語を構成しています…";
-    const response = await fetch("/api/generate", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({settings,records:recordsForAi(settings)})});
+    const apiBase = location.hostname.endsWith("github.io") ? "https://people-wiki-fast-forward-api.onrender.com" : "";
+    const response = await fetch(`${apiBase}/api/generate`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({settings,records:recordsForAi(settings)})});
     const payload = await response.json();
     if(!response.ok || !payload.ok) throw new Error(payload.error || "生成に失敗しました");
     ffDeck = payload.story.slides.map(s => ({year:s.date,title:s.heading,text:s.narration,people:"",sources:s.sourceEvents || []}));

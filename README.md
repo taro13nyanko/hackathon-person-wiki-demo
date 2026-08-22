@@ -4,9 +4,18 @@
 
 ## 公開版
 
-GitHub Pagesでは `index.html` が公開入口です。人物ページの閲覧、検索、期間・グループ・テーマを使った3枚のローカル早送りを利用できます。
+GitHub Pagesでは `index.html` が公開入口です。人物ページの閲覧、検索、期間・グループ・備考を使った3枚の早送りを利用できます。
 
-GitHub Pagesはバックエンドを実行できないため、OpenAI APIによる生成はローカル起動時のみ有効です。APIキーを `index.html` やGitHubのファイルへ書き込まないでください。
+OpenAI APIはRender上のバックエンドから呼び出します。APIキーはブラウザやGitHub Pagesへ渡さず、RenderのSecretとして管理します。
+
+## 公開AIバックエンド
+
+1. [Render Blueprint](https://render.com/deploy?repo=https://github.com/taro13nyanko/hackathon-person-wiki-demo)を開く
+2. GitHubでログインし、表示されたサービスを作成する
+3. `OPENAI_API_KEY` にOpenAI APIキーをSecretとして入力する
+4. デプロイ完了後、`https://people-wiki-fast-forward-api.onrender.com/api/health` が開くことを確認する
+
+公開サービスはGitHubへの更新を自動反映します。1つの接続元につき1分5回までに制限しています。Render側でサービス名を変更した場合は、`build_people_wiki.py` 内の公開API URLも同じURLへ変更してください。
 
 ## ビルド
 
@@ -35,7 +44,7 @@ APIキーはHTMLや人物データへ埋め込まれません。`.env` はGitの
 - 3枚固定の早送り
 - 必要な場合だけ入力する備考欄
 
-生成後は、条件変更、再生成、スライド文章の直接編集、各スライドの根拠確認ができます。APIが未設定または一時的に失敗した場合は、Wiki内のローカル構成へ自動的に切り替わります。
+生成した早送りは、スライドをクリックすると次へ進み、3枚目の次は1枚目へ戻ります。APIが未設定または一時的に失敗した場合は、Wiki内のローカル構成へ自動的に切り替わります。
 
 ## デモの見どころ
 

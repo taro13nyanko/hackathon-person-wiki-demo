@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
+import time
 import urllib.error
 import urllib.request
 from http import HTTPStatus
@@ -15,20 +17,62 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 WIKI_DIR = ROOT / "人物wiki"
 ENV_FILE = ROOT / ".env"
+RATE_LOCK = threading.Lock()
+RATE_BUCKETS: dict[str, list[float]] = {}
 
 
 def load_env_file() -> None:
     if not ENV_FILE.exists():
         return
-    for raw in ENV_FILE.read_text(encoding="utf-8").splitlines():
+    for raw in ENV_FILE.read_text(encoding="utf-8-sig").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+        name = key.strip()
+        if not os.environ.get(name, "").strip():
+            os.environ[name] = value.strip().strip('"').strip("'")
 
 
 load_env_file()
+
+
+def allowed_origins() -> set[str]:
+    configured = os.environ.get(
+        "ALLOWED_ORIGINS",
+        "https://taro13nyanko.github.io,http://127.0.0.1:8765,http://localhost:8765",
+    )
+    return {item.strip().rstrip("/") for item in configured.split(",") if item.strip()}
+
+
+def check_rate_limit(client: str) -> tuple[bool, int]:
+    window = max(10, int(os.environ.get("RATE_LIMIT_WINDOW_SECONDS", "60")))
+    maximum = max(1, int(os.environ.get("RATE_LIMIT_REQUESTS", "5")))
+    now = time.time()
+    with RATE_LOCK:
+        recent = [stamp for stamp in RATE_BUCKETS.get(client, []) if now - stamp < window]
+        if len(recent) >= maximum:
+            retry_after = max(1, int(window - (now - recent[0])))
+            RATE_BUCKETS[client] = recent
+            return False, retry_after
+        recent.append(now)
+        RATE_BUCKETS[client] = recent
+    return True, 0
+
+
+def validate_request_data(request_data: object) -> dict:
+    if not isinstance(request_data, dict):
+        raise ValueError("リクエスト形式が不正です")
+    settings = request_data.get("settings")
+    records = request_data.get("records")
+    if not isinstance(settings, dict) or not isinstance(records, list):
+        raise ValueError("設定または人物記録が不足しています")
+    if len(records) > 100:
+        raise ValueError("一度に処理できる人物は100人までです")
+    notes = settings.get("notes", "")
+    if not isinstance(notes, str) or len(notes) > 500:
+        raise ValueError("備考は500文字以内にしてください")
+    return request_data
 
 
 def story_schema() -> dict:
@@ -131,6 +175,13 @@ focusPersonが神谷ハルの場合は本人自身の人生の早送りです。
 
 
 class WikiHandler(SimpleHTTPRequestHandler):
+    def request_origin(self) -> str:
+        return self.headers.get("Origin", "").rstrip("/")
+
+    def cors_origin(self) -> str:
+        origin = self.request_origin()
+        return origin if origin and origin in allowed_origins() else ""
+
     def translate_path(self, path: str) -> str:
         clean = path.split("?", 1)[0].split("#", 1)[0]
         if clean in ("", "/"):
@@ -142,6 +193,12 @@ class WikiHandler(SimpleHTTPRequestHandler):
 
     def end_headers(self) -> None:
         self.send_header("Cache-Control", "no-store")
+        origin = self.cors_origin()
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         super().end_headers()
 
     def send_json(self, payload: dict, status: int = 200) -> None:
@@ -162,27 +219,46 @@ class WikiHandler(SimpleHTTPRequestHandler):
             return
         super().do_GET()
 
+    def do_OPTIONS(self) -> None:
+        if not self.cors_origin():
+            self.send_error(HTTPStatus.FORBIDDEN)
+            return
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self.end_headers()
+
     def do_POST(self) -> None:
         if not self.path.startswith("/api/generate"):
             self.send_error(HTTPStatus.NOT_FOUND)
             return
         try:
+            forwarded = self.headers.get("X-Forwarded-For", "").split(",", 1)[0].strip()
+            client = forwarded or self.client_address[0]
+            permitted, retry_after = check_rate_limit(client)
+            if not permitted:
+                self.send_json({"ok": False, "error": "生成回数が多すぎます。少し待ってから再度お試しください。"}, status=429)
+                return
             length = int(self.headers.get("Content-Length", "0"))
             if length <= 0 or length > 2_000_000:
                 raise ValueError("リクエストサイズが不正です")
-            request_data = json.loads(self.rfile.read(length).decode("utf-8"))
+            request_data = validate_request_data(json.loads(self.rfile.read(length).decode("utf-8")))
             story = call_ai(request_data)
             self.send_json({"ok": True, "story": story})
-        except Exception as exc:
+        except (ValueError, json.JSONDecodeError) as exc:
             self.send_json({"ok": False, "error": str(exc)}, status=400)
+        except Exception as exc:
+            print(f"[wiki] AI generation failed: {exc}")
+            self.send_json(
+                {"ok": False, "error": "AI生成に失敗しました。しばらく待ってからもう一度お試しください。"},
+                status=502,
+            )
 
     def log_message(self, fmt: str, *args) -> None:
         print(f"[wiki] {self.address_string()} - {fmt % args}")
 
 
 def main() -> None:
-    host = os.environ.get("WIKI_HOST", "127.0.0.1")
-    port = int(os.environ.get("WIKI_PORT", "8765"))
+    host = os.environ.get("WIKI_HOST", "0.0.0.0" if os.environ.get("RENDER") else "127.0.0.1")
+    port = int(os.environ.get("PORT", os.environ.get("WIKI_PORT", "8765")))
     server = ThreadingHTTPServer((host, port), WikiHandler)
     print(f"人物Wiki: http://{host}:{port}")
     print("終了するには Ctrl+C を押してください")
