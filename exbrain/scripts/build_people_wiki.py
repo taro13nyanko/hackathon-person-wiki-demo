@@ -1532,19 +1532,12 @@ html = r"""<!DOCTYPE html>
 <div id="ffConfigModal" class="ff-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="ffConfigTitle">
   <div class="ff-config">
     <h2 id="ffConfigTitle">≫ 早送りをつくる</h2>
-    <p class="ff-config-sub">期間・グループ・テーマを選ぶと、Wikiの記録を3枚にまとめます。</p>
+    <p class="ff-config-sub">期間とグループを選ぶと、Wikiの記録を3枚にまとめます。</p>
     <div class="ff-form-grid">
       <div class="ff-field"><label for="ffStartDate">開始日</label><input id="ffStartDate" type="date"></div>
       <div class="ff-field"><label for="ffEndDate">終了日</label><input id="ffEndDate" type="date"></div>
       <div class="ff-field"><label for="ffGroupSelect">グループ</label><select id="ffGroupSelect"></select></div>
-      <div class="ff-field full"><div class="ff-field-title">何を振り返るか</div><div id="ffThemeChecks" class="ff-checks">
-        <label><input type="checkbox" value="人間関係の変化" checked>人間関係</label>
-        <label><input type="checkbox" value="恋愛">恋愛</label>
-        <label><input type="checkbox" value="成長と転機" checked>成長と転機</label>
-        <label><input type="checkbox" value="印象的な事件">印象的な事件</label>
-        <label><input type="checkbox" value="楽しかった出来事">楽しかった出来事</label>
-        <label><input type="checkbox" value="すべて">すべて</label>
-      </div></div>
+      <div class="ff-field full"><label for="ffNotes">備考（任意）</label><textarea id="ffNotes" rows="3" placeholder="追加の希望がある場合だけ入力してください"></textarea></div>
     </div>
     <div class="ff-modal-actions"><span id="ffGenerateStatus"></span><button onclick="closeFastForwardConfig()">キャンセル</button><button id="ffGenerateBtn" class="primary" onclick="generateAiFastForward()">AIで生成</button></div>
   </div>
@@ -2099,10 +2092,12 @@ function openFastForwardConfig(kind, value, keepSettings=false){
   if(!keepSettings || !ffLastSettings){
     document.getElementById("ffStartDate").value = events[0]?.date || "2012-01-01";
     document.getElementById("ffEndDate").value = events[events.length-1]?.date || new Date().toISOString().slice(0,10);
+    document.getElementById("ffNotes").value = "";
   } else {
     document.getElementById("ffStartDate").value = ffLastSettings.startDate;
     document.getElementById("ffEndDate").value = ffLastSettings.endDate;
     group.value = ffLastSettings.group;
+    document.getElementById("ffNotes").value = ffLastSettings.notes || "";
   }
   document.getElementById("ffGenerateStatus").textContent = location.protocol === "file:" ? "AI利用時は start_wiki.bat から起動" : "";
   document.getElementById("ffConfigModal").classList.remove("hidden");
@@ -2111,12 +2106,11 @@ function openFastForwardConfig(kind, value, keepSettings=false){
 function closeFastForwardConfig(){ document.getElementById("ffConfigModal").classList.add("hidden"); }
 
 function collectFastForwardSettings(){
-  const themes = Array.from(document.querySelectorAll("#ffThemeChecks input:checked")).map(x=>x.value);
   return {
     startDate:document.getElementById("ffStartDate").value,
     endDate:document.getElementById("ffEndDate").value,
     group:document.getElementById("ffGroupSelect").value,
-    themes:themes.length ? themes : ["すべて"],
+    notes:document.getElementById("ffNotes").value.trim(),
     slideCount:3,
     focusPerson:ffContext.kind === "person" ? ffContext.value : ""
   };
