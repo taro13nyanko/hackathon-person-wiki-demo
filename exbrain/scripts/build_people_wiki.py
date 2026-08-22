@@ -2087,6 +2087,7 @@ function collectFastForwardSettings(){
 
 function recordsForAi(settings){
   return records.filter(r => (r.category === settings.group || (r.extraCategories || []).includes(settings.group)))
+    .filter(r => settings.focusPerson === "神谷ハル" ? r.title === "神谷ハル" : true)
     .map(r => {
       const events = datedEventsFromRecord(r).filter(e => (!settings.startDate || e.date >= settings.startDate) && (!settings.endDate || e.date <= settings.endDate));
       return {
@@ -3427,7 +3428,7 @@ function showArticle(id){
   document.getElementById("article").innerHTML = `
     <div class="badge">${escapeHtml(r.category)}</div>
     <button class="star-btn ${isFeatured ? 'active' : ''}" onclick="toggleFeatured('${id.replace(/'/g,"\\'")}')">${isFeatured ? '★ 主要人物' : '☆ 主要人物に追加'}</button>
-    <button class="fast-forward-btn" style="margin-left:6px;" onclick="openFastForwardConfig('person','${id.replace(/'/g,"\\'")}')">≫ ${isGroupRecord(r) ? 'このコミュニティを' : 'この人との関係を'}早送り</button>
+    <button class="fast-forward-btn" style="margin-left:6px;" onclick="openFastForwardConfig('person','${id.replace(/'/g,"\\'")}')">≫ ${r.id === '神谷ハル' ? '自分の今までを早送り' : (isGroupRecord(r) ? 'このコミュニティを早送り' : 'この人との関係を早送り')}</button>
     ${infobox}
     <h1>${escapeHtml(dispName(r.title))}</h1>
     <div class="summary">${linkify(r.summary)}</div>
