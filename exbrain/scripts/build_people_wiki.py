@@ -49,7 +49,8 @@ def get_last_update_label():
         elif "Demo User" in author or "ユーザー" in author:
             who = "ユーザー"
         else:
-            who = author
+            # 公開デモではローカルGit設定の実名をHTMLへ出さない。
+            who = "制作チーム"
         return f"最終更新: {who}", f"{dt_label}（{who}）"
     except Exception:
         return "", ""

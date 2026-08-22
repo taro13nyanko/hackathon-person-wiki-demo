@@ -136,6 +136,20 @@ for index, (name, reading, summary, club, trait, role, related, event1, event2) 
             "2023-08-12: 10年ぶりの大規模同窓会で30人と再会した",
             "2026-04-18: 30歳の節目に高校15年間の関係を振り返った",
         ]
+        perspective_heading = "人との向き合い方"
+        perspective_lines = [
+            "相手のことを覚えていたい気持ちが強い一方、記録することで分かったつもりになる怖さも感じている",
+            "高校時代は人間関係の小さな変化を考えすぎて、声をかける前に機会を逃すことがあった",
+            "現在は、記録を結論ではなく、もう一度話すための入口として使おうとしている",
+        ]
+    else:
+        perspective_heading = "主人公との関係"
+        perspective_lines = [
+            misreadings[index % len(misreadings)],
+            quiet_scenes[index % len(quiet_scenes)],
+            present_tensions[index % len(present_tensions)],
+        ]
+    perspective_body = "\n".join(f"- {line}。[^1]" for line in perspective_lines)
     history = "\n".join(f"- {line}[^1]" for line in sorted(extra))
     body = f"""---
 type: entity
@@ -168,11 +182,9 @@ tags: [高校コミュニティ]
 - {anecdote}。[^1]
 - {turning_points[index % len(turning_points)]}。[^1]
 
-## 主人公との関係
+## {perspective_heading}
 
-- {misreadings[index % len(misreadings)]}。[^1]
-- {quiet_scenes[index % len(quiet_scenes)]}。[^1]
-- {present_tensions[index % len(present_tensions)]}。[^1]
+{perspective_body}
 
 ## 関係の変化
 
