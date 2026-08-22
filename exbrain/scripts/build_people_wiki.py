@@ -1422,6 +1422,21 @@ html = r"""<!DOCTYPE html>
   .ff-checks input{width:auto;margin-right:4px;}
   .ff-modal-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;margin-top:20px;}
   .ff-modal-actions button{padding:9px 15px;border-radius:999px;border:1px solid #aeb7c7;background:#fff;cursor:pointer;}
+  .wiki-edit-actions{display:flex;gap:8px;margin:10px 0 16px;}
+  .wiki-edit-btn{padding:7px 13px;border:1px solid var(--wiki-border);border-radius:4px;background:#fff;color:var(--wiki-link);cursor:pointer;font:inherit;}
+  .wiki-edit-btn.primary{background:var(--wiki-link);color:#fff;border-color:var(--wiki-link);}
+  .edit-modal{width:min(720px,calc(100vw - 48px));max-height:88vh;overflow:auto;background:#fff;border:1px solid var(--wiki-border);border-radius:8px;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.22);}
+  .edit-modal h2{margin:0 0 6px;}
+  .edit-note{margin:0 0 18px;color:#54595d;font-size:13px;}
+  .edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .edit-field{display:flex;flex-direction:column;gap:5px;}
+  .edit-field.full{grid-column:1/-1;}
+  .edit-field label{font-weight:bold;font-size:13px;}
+  .edit-field input,.edit-field textarea{width:100%;padding:9px;border:1px solid var(--wiki-border);border-radius:3px;font:inherit;background:#fff;color:#202122;}
+  .edit-field textarea{resize:vertical;min-height:74px;}
+  .edit-actions{display:flex;justify-content:flex-end;align-items:center;gap:9px;margin-top:18px;}
+  .edit-actions button{padding:8px 15px;border:1px solid var(--wiki-border);border-radius:4px;background:#fff;cursor:pointer;font:inherit;}
+  .edit-actions .primary{background:#36c;color:#fff;border-color:#36c;}
   .ff-modal-actions .primary{background:#111827;color:#fff;border-color:#111827;font-weight:700;}
   #ffGenerateStatus{margin-right:auto;font-size:13px;color:#667085;}
   .ff-editing .ff-slide-title,.ff-editing .ff-slide-text{outline:1px dashed #94a3b8;outline-offset:6px;border-radius:3px;}
@@ -1465,6 +1480,7 @@ html = r"""<!DOCTYPE html>
   <div id="sidebar">
     <h2><span class="wiki-title-text" onclick="goHome()" title="ホームへ戻る">人物Wiki</span><span class="wiki-title-actions"><button id="menuToggle" onclick="toggleSidebar()">絞り込み</button></span></h2>
     <input id="search" placeholder="名前・本文で検索..." oninput="renderList()">
+    <button class="wiki-edit-btn primary" style="margin:8px 0;" onclick="openWikiEditor()">＋ 新規作成</button>
     <div id="toolbar">
       <button id="featuredBtn" data-toolbar-key="featured" onclick="showFeaturedList()">⭐</button>
       <button id="recentBtn" data-toolbar-key="recent" onclick="showRecentUpdates()">🕘</button>
@@ -1518,6 +1534,23 @@ html = r"""<!DOCTYPE html>
     <div class="ff-modal-actions"><span id="ffGenerateStatus"></span><button onclick="closeFastForwardConfig()">キャンセル</button><button id="ffGenerateBtn" class="primary" onclick="generateAiFastForward()">AIで生成</button></div>
   </div>
 </div>
+<div id="wikiEditModal" class="ff-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="wikiEditTitle">
+  <div class="edit-modal">
+    <h2 id="wikiEditTitle">人物ページを新規作成</h2>
+    <p class="edit-note">ここでの変更は、このブラウザに保存されます。公開されている共通データは書き換えません。</p>
+    <div class="edit-grid">
+      <div class="edit-field"><label for="editName">名前</label><input id="editName" maxlength="80"></div>
+      <div class="edit-field"><label for="editCategory">グループ</label><input id="editCategory" maxlength="80" placeholder="例：高校コミュニティ"></div>
+      <div class="edit-field full"><label for="editSummary">概要</label><textarea id="editSummary" maxlength="1000"></textarea></div>
+      <div class="edit-field full"><label for="editBasic">基本情報</label><textarea id="editBasic" placeholder="項目名：内容（1行に1項目）"></textarea></div>
+      <div class="edit-field full"><label for="editTraits">特徴</label><textarea id="editTraits"></textarea></div>
+      <div class="edit-field full"><label for="editValues">価値観</label><textarea id="editValues"></textarea></div>
+      <div class="edit-field full"><label for="editCurrent">現在の状態</label><textarea id="editCurrent"></textarea></div>
+      <div class="edit-field full"><label for="editHistory">履歴</label><textarea id="editHistory" rows="6" placeholder="- 2024-04-01: 出来事"></textarea></div>
+    </div>
+    <div class="edit-actions"><span id="wikiEditStatus"></span><button onclick="closeWikiEditor()">キャンセル</button><button class="primary" onclick="saveWikiEditor()">保存</button></div>
+  </div>
+</div>
 <script>
 const DATA = __DATA_JSON__;
 const AI_SUGGESTIONS_MD = __AI_SUGGESTIONS_JSON__;
@@ -1528,6 +1561,40 @@ const aliasOrder = DATA.aliasOrder;
 const univOverviews = DATA.univOverviews || {};
 const NON_UNIV_TAGS = new Set(DATA.nonUnivTags || []);
 const rawFiles = DATA.rawFiles || [];
+const WIKI_EDITS_KEY = "peopleWikiBrowserEditsV1";
+let editingWikiId = null;
+
+function loadWikiEdits(){
+  try { return JSON.parse(localStorage.getItem(WIKI_EDITS_KEY) || "{}"); }
+  catch(e){ return {}; }
+}
+function saveWikiEdits(edits){
+  localStorage.setItem(WIKI_EDITS_KEY, JSON.stringify(edits));
+}
+function normalizeEditableRecord(r){
+  r.id = String(r.id || r.title || "");
+  r.title = String(r.title || r.id || "");
+  r.category = String(r.category || "その他");
+  r.extraCategories = Array.isArray(r.extraCategories) ? r.extraCategories : [];
+  r.basic = Array.isArray(r.basic) ? r.basic : [];
+  r.summary = String(r.summary || "");
+  r.traits = String(r.traits || ""); r.values = String(r.values || "");
+  r.kokuboRel = String(r.kokuboRel || ""); r.otaRel = String(r.otaRel || "");
+  r.relations = String(r.relations || ""); r.current = String(r.current || "");
+  r.history = String(r.history || ""); r.extra = Array.isArray(r.extra) ? r.extra : [];
+  r.links = Array.isArray(r.links) ? r.links : []; r.univTags = []; r.clubTags = [];
+  r.entityType = r.entityType || "person"; r.readingSort = r.readingSort || r.title;
+  r.hasKokubo = !!r.hasKokubo; r.hasOta = !!r.hasOta;
+  r.searchText = [r.title,r.category,r.summary,r.traits,r.values,r.current,r.history,...r.basic.flat()].join("\n");
+  return r;
+}
+const savedWikiEdits = loadWikiEdits();
+Object.entries(savedWikiEdits).forEach(([id, saved]) => {
+  const existingIndex = records.findIndex(r => r.id === id);
+  const merged = normalizeEditableRecord({...((existingIndex >= 0) ? records[existingIndex] : {}),...saved,id});
+  if(existingIndex >= 0) records[existingIndex] = merged; else records.push(merged);
+  titleToId[merged.title] = id;
+});
 const byId = {};
 records.forEach(r => byId[r.id] = r);
 
@@ -3397,6 +3464,66 @@ function clubLinkCell(v, clubTags, recId, occTracker){
   return links + detail + fnHtml;
 }
 
+function basicToEditor(rows){
+  return (rows || []).map(([k,v]) => `${k}：${v}`).join("\n");
+}
+function editorToBasic(text){
+  return String(text || "").split("\n").map(line => line.trim()).filter(Boolean).map(line => {
+    const pos = Math.max(line.indexOf("："), line.indexOf(":"));
+    return pos > 0 ? [line.slice(0,pos).trim(),line.slice(pos+1).trim()] : ["メモ",line];
+  });
+}
+function makeWikiId(name){
+  const base = String(name || "人物").trim().replace(/[\\/#?]/g,"_");
+  let id = base, n = 2;
+  while(byId[id]) id = `${base}_${n++}`;
+  return id;
+}
+function openWikiEditor(id=""){
+  const r = id ? byId[id] : null;
+  editingWikiId = r ? id : null;
+  document.getElementById("wikiEditTitle").textContent = r ? `${dispName(r.title)}を編集` : "人物ページを新規作成";
+  document.getElementById("editName").value = r ? dispName(r.title) : "";
+  document.getElementById("editCategory").value = r ? (r.category || "") : "";
+  document.getElementById("editSummary").value = r ? (r.summary || "") : "";
+  document.getElementById("editBasic").value = r ? basicToEditor(r.basic) : "";
+  document.getElementById("editTraits").value = r ? (r.traits || "") : "";
+  document.getElementById("editValues").value = r ? (r.values || "") : "";
+  document.getElementById("editCurrent").value = r ? (r.current || "") : "";
+  document.getElementById("editHistory").value = r ? (r.history || "") : "";
+  document.getElementById("wikiEditStatus").textContent = "";
+  document.getElementById("wikiEditModal").classList.remove("hidden");
+  setTimeout(() => document.getElementById("editName").focus(),0);
+}
+function closeWikiEditor(){
+  document.getElementById("wikiEditModal").classList.add("hidden");
+  editingWikiId = null;
+}
+function saveWikiEditor(){
+  const name = document.getElementById("editName").value.trim();
+  if(!name){ document.getElementById("wikiEditStatus").textContent = "名前を入力してください"; return; }
+  const id = editingWikiId || makeWikiId(name);
+  const old = byId[id] || {};
+  const record = normalizeEditableRecord({...old,
+    id,title:name,readingSort:name,
+    category:document.getElementById("editCategory").value.trim() || "その他",
+    summary:document.getElementById("editSummary").value.trim(),
+    basic:editorToBasic(document.getElementById("editBasic").value),
+    traits:document.getElementById("editTraits").value.trim(),
+    values:document.getElementById("editValues").value.trim(),
+    current:document.getElementById("editCurrent").value.trim(),
+    history:document.getElementById("editHistory").value.trim(),
+    browserEdited:true
+  });
+  const index = records.findIndex(r => r.id === id);
+  if(index >= 0) records[index] = record; else records.push(record);
+  byId[id] = record; titleToId[name] = id;
+  const edits = loadWikiEdits(); edits[id] = record; saveWikiEdits(edits);
+  document.getElementById("wikiEditModal").classList.add("hidden");
+  editingWikiId = null;
+  renderList(); showArticle(id);
+}
+
 function showArticle(id){
   const r = byId[id];
   if(!r) return;
@@ -3458,6 +3585,7 @@ function showArticle(id){
     <div class="badge">${escapeHtml(r.category)}</div>
     <button class="star-btn ${isFeatured ? 'active' : ''}" onclick="toggleFeatured('${id.replace(/'/g,"\\'")}')">${isFeatured ? '★ 主要人物' : '☆ 主要人物に追加'}</button>
     <button class="fast-forward-btn" style="margin-left:6px;" onclick="openFastForwardConfig('person','${id.replace(/'/g,"\\'")}')">≫ ${r.id === '神谷ハル' ? '自分の今までを早送り' : (isGroupRecord(r) ? 'このコミュニティを早送り' : 'この人との関係を早送り')}</button>
+    <button class="wiki-edit-btn" style="margin-left:6px;" onclick="openWikiEditor('${id.replace(/'/g,"\\'")}')">編集</button>
     ${infobox}
     <h1>${escapeHtml(dispName(r.title))}</h1>
     <div class="summary">${linkify(r.summary)}</div>
