@@ -2013,6 +2013,31 @@ function buildPersonFastForward(r){
   return deck;
 }
 
+function buildSelfFastForward(r){
+  const events = datedEventsFromRecord(r).sort((a,b) => a.date.localeCompare(b.date));
+  const facts = xs => xs.map(e => `${e.label}、${cleanTimelineText(e.text).replace(/[。\s]+$/, "")}`).join("。") + "。";
+  const early = events.filter(e => e.date < "2015-04-01").slice(0, 3);
+  const middle = events.filter(e => e.date >= "2015-04-01" && e.date < "2023-01-01").slice(-3);
+  const recent = events.filter(e => e.date >= "2023-01-01").slice(-3);
+  return [
+    {
+      year:"2012 — 2015", title:"記録を始めた高校時代",
+      text:`${facts(early)}写真や短い言葉で出来事を残すうちに、何を覚えていたいのかを考えるようになった。`,
+      people:"始まりは、高校一年生の教室だった"
+    },
+    {
+      year:"2015 — 2022", title:"離れてから見えたもの",
+      text:`${facts(middle)}卒業後、毎日会っていた人たちとの距離が変わった。記録を読み返すことで、自分がどんな場面で動き、迷い、誰を頼ってきたのかが少しずつ見えてきた。`,
+      people:"出来事の記録が、自分の選択の記録へ変わった"
+    },
+    {
+      year:"2023 — NOW", title:"30歳の現在地",
+      text:`${facts(recent)}今の人物Wikiは、過去をきれいにまとめるためのものではない。自分が何を大切にしてきたかを確かめ、これから人とどう向き合うかを選ぶための場所になっている。`,
+      people:`${events.length}件の自分の記録から振り返りました`
+    }
+  ];
+}
+
 function buildCategoryFastForward(category){
   const members = records.filter(r => r.category === category || (r.extraCategories || []).includes(category));
   const events = members.flatMap(datedEventsFromRecord).sort((a,b) => a.date.localeCompare(b.date));
@@ -2101,7 +2126,8 @@ function recordsForAi(settings){
 
 function localDeckForSettings(settings){
   let deck;
-  if(settings.focusPerson && byId[settings.focusPerson] && settings.group === byId[settings.focusPerson].category) deck = buildPersonFastForward(byId[settings.focusPerson]);
+  if(settings.focusPerson === "神谷ハル" && byId[settings.focusPerson]) deck = buildSelfFastForward(byId[settings.focusPerson]);
+  else if(settings.focusPerson && byId[settings.focusPerson] && settings.group === byId[settings.focusPerson].category) deck = buildPersonFastForward(byId[settings.focusPerson]);
   else deck = buildCategoryFastForward(settings.group);
   const within = deck.filter((s,i) => i === 0 || s.year === "NOW" || !/^\d{4}年/.test(s.year) ||
     ((!settings.startDate || s.year.slice(0,4) >= settings.startDate.slice(0,4)) && (!settings.endDate || s.year.slice(0,4) <= settings.endDate.slice(0,4))));
@@ -2148,7 +2174,7 @@ function showFastForward(kind, value){
     const r = byId[value];
     if(!r) return;
     currentArticleId = value;
-    ffDeck = buildPersonFastForward(r);
+    ffDeck = r.id === "神谷ハル" ? buildSelfFastForward(r) : buildPersonFastForward(r);
     location.hash = `ff:p:${encodeURIComponent(value)}`;
   } else {
     ffDeck = buildCategoryFastForward(value);
