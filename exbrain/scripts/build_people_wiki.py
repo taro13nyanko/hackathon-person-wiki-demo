@@ -3469,10 +3469,13 @@ function clubLinkCell(v, clubTags, recId, occTracker){
 }
 
 function basicToEditor(rows){
-  return (rows || []).map(([k,v]) => `${k}：${v}`).join("\n");
+  return (rows || []).map(([k,v]) => `${cleanEditorText(k)}：${cleanEditorText(v)}`).join("\n");
+}
+function cleanEditorText(text){
+  return String(text || "").replace(/\[\^\d+\]/g, "").replace(/[ \t]+\n/g, "\n").replace(/ {2,}/g, " ").trim();
 }
 function editorToBasic(text){
-  return String(text || "").split("\n").map(line => line.trim()).filter(Boolean).map(line => {
+  return cleanEditorText(text).split("\n").map(line => line.trim()).filter(Boolean).map(line => {
     const pos = Math.max(line.indexOf("："), line.indexOf(":"));
     return pos > 0 ? [line.slice(0,pos).trim(),line.slice(pos+1).trim()] : ["メモ",line];
   });
@@ -3505,12 +3508,12 @@ function openWikiEditor(id=""){
   document.getElementById("wikiEditTitle").textContent = r ? `${dispName(r.title)}を編集` : "人物ページを新規作成";
   document.getElementById("editName").value = r ? dispName(r.title) : "";
   document.getElementById("editCategory").value = r ? (r.category || "") : "";
-  document.getElementById("editSummary").value = r ? (r.summary || "") : "";
+  document.getElementById("editSummary").value = r ? cleanEditorText(r.summary) : "";
   document.getElementById("editBasic").value = r ? basicToEditor(r.basic) : "";
-  document.getElementById("editTraits").value = r ? (r.traits || "") : "";
-  document.getElementById("editValues").value = r ? (r.values || "") : "";
-  document.getElementById("editCurrent").value = r ? (r.current || "") : "";
-  document.getElementById("editHistory").value = r ? (r.history || "") : "";
+  document.getElementById("editTraits").value = r ? cleanEditorText(r.traits) : "";
+  document.getElementById("editValues").value = r ? cleanEditorText(r.values) : "";
+  document.getElementById("editCurrent").value = r ? cleanEditorText(r.current) : "";
+  document.getElementById("editHistory").value = r ? cleanEditorText(r.history) : "";
   document.getElementById("wikiEditStatus").textContent = "";
   document.getElementById("wikiEditModal").classList.remove("hidden");
   setTimeout(() => document.getElementById("editName").focus(),0);
@@ -3527,12 +3530,12 @@ function saveWikiEditor(){
   const record = normalizeEditableRecord({...old,
     id,title:name,readingSort:name,
     category:document.getElementById("editCategory").value.trim() || "その他",
-    summary:document.getElementById("editSummary").value.trim(),
+    summary:cleanEditorText(document.getElementById("editSummary").value),
     basic:editorToBasic(document.getElementById("editBasic").value),
-    traits:document.getElementById("editTraits").value.trim(),
-    values:document.getElementById("editValues").value.trim(),
-    current:document.getElementById("editCurrent").value.trim(),
-    history:document.getElementById("editHistory").value.trim(),
+    traits:cleanEditorText(document.getElementById("editTraits").value),
+    values:cleanEditorText(document.getElementById("editValues").value),
+    current:cleanEditorText(document.getElementById("editCurrent").value),
+    history:cleanEditorText(document.getElementById("editHistory").value),
     browserEdited:true
   });
   const index = records.findIndex(r => r.id === id);
