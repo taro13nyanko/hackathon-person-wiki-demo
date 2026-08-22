@@ -1891,8 +1891,9 @@ function renderList(){
     const currentCategory = currentArticleId && byId[currentArticleId] ? byId[currentArticleId].category : "";
     const targetCategory = (activeFilter !== "全員" && activeFilter !== "主要人物") ? activeFilter : currentCategory;
     const usable = !!targetCategory && records.some(r => r.category === targetCategory || (r.extraCategories || []).includes(targetCategory));
+    ffBtn.hidden = !usable;
     ffBtn.disabled = !usable;
-    ffBtn.textContent = usable ? `≫ ${targetCategory}を早送り` : "≫ カテゴリを選んで早送り";
+    ffBtn.textContent = usable ? `≫ ${targetCategory}を早送り` : "";
     ffBtn.dataset.targetCategory = targetCategory || "";
   }
   document.getElementById("list").innerHTML = filtered.map(r => {
@@ -3476,7 +3477,7 @@ function showHome(){
     <section class="home-hero">
       <div class="home-kicker">PEOPLE WIKI</div>
       <h1 class="home-title">人との記憶を、<br>時間ごと残していく。</h1>
-      <p class="home-lead">人物Wikiは、出会った人、交わした会話、一緒に過ごした出来事をつなぎ、関係の変化まで振り返れる個人のためのWikiです。</p>
+      <p class="home-lead">人物Wikiは、出会った人、交わした会話、一緒に過ごした出来事をつなぎ、関係の変化を振り返れるWikiです。</p>
       <div class="home-actions">
         ${selfRecord ? `<button class="home-primary" onclick="showArticle('${selfId}')">自分のページを見る →</button>` : ""}
         <button class="home-secondary" onclick="openFastForwardConfig('category','高校コミュニティ')">高校3年間を早送り ≫</button>
