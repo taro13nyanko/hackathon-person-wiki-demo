@@ -121,30 +121,34 @@ def parse_json_text(text: str) -> dict:
     return json.loads(cleaned)
 
 
-def call_ai(request_data: dict) -> dict:
-    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY が設定されていません")
-
-    api_url = os.environ.get("OPENAI_API_URL", "https://api.openai.com/v1/responses")
-    model = os.environ.get("OPENAI_MODEL", "gpt-5-mini")
-    settings = request_data.get("settings", {})
-    records = request_data.get("records", [])
-    prompt_data = {
-        "generationSettings": settings,
-        "records": records,
-    }
-    instructions = """あなたは人物Wikiの記録を短い物語へ編集するナラティブエディターです。
+AI_INSTRUCTIONS = """あなたは人物Wikiの記録を短い物語へ編集するナラティブエディターです。
 入力された記録だけを事実の根拠として使ってください。未記録の場所、会話、告白、事件は作らないでください。
 出来事の箇条書きではなく、各スライドが前後につながる物語にしてください。同じ見出しを繰り返さないでください。
 期間外、対象外の情報は使わないでください。sourceEventsには根拠にした日付と人物名を短く入れてください。
 generationSettingsのnotesが空でない場合は、記録の範囲内でその希望を反映してください。
 focusPersonが神谷ハルの場合は本人自身の人生の早送りです。他人との関係を語る定型文を使わず、高校時代、卒業後、30歳の現在という本人の選択と変化を一人称でまとめてください。「神谷ハルと過ごした時間」「自分と過ごした時間」「今の私の一部」という表現は禁止します。
 内容を必ず3枚にまとめてください。"""
+
+
+def prompt_data(request_data: dict) -> dict:
+    settings = request_data.get("settings", {})
+    records = request_data.get("records", [])
+    return {
+        "generationSettings": settings,
+        "records": records,
+    }
+
+
+def call_openai(request_data: dict) -> dict:
+    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY が設定されていません")
+    api_url = os.environ.get("OPENAI_API_URL", "https://api.openai.com/v1/responses")
+    model = os.environ.get("OPENAI_MODEL", "gpt-5-mini")
     body = {
         "model": model,
-        "instructions": instructions,
-        "input": json.dumps(prompt_data, ensure_ascii=False),
+        "instructions": AI_INSTRUCTIONS,
+        "input": json.dumps(prompt_data(request_data), ensure_ascii=False),
         "store": False,
         "max_output_tokens": 5000,
         "text": {
@@ -172,6 +176,46 @@ focusPersonが神谷ハルの場合は本人自身の人生の早送りです。
     if not text:
         raise RuntimeError("AI APIの応答から文章を取得できませんでした")
     return parse_json_text(text)
+
+
+def call_gemini(request_data: dict) -> dict:
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY が設定されていません")
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    body = {
+        "systemInstruction": {"parts": [{"text": AI_INSTRUCTIONS}]},
+        "contents": [{"role": "user", "parts": [{"text": json.dumps(prompt_data(request_data), ensure_ascii=False)}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseJsonSchema": story_schema(),
+            "maxOutputTokens": 5000,
+        },
+    }
+    req = urllib.request.Request(
+        api_url,
+        data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=90) as response:
+            raw = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Gemini API error {exc.code}: {detail[:600]}") from exc
+    parts = raw.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+    text = "\n".join(part.get("text", "") for part in parts if isinstance(part.get("text"), str))
+    if not text:
+        raise RuntimeError("Gemini APIの応答から文章を取得できませんでした")
+    return parse_json_text(text)
+
+
+def call_ai(request_data: dict) -> dict:
+    if os.environ.get("GEMINI_API_KEY", "").strip():
+        return call_gemini(request_data)
+    return call_openai(request_data)
 
 
 class WikiHandler(SimpleHTTPRequestHandler):
@@ -211,10 +255,13 @@ class WikiHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path.startswith("/api/health"):
+            gemini_configured = bool(os.environ.get("GEMINI_API_KEY", "").strip())
+            openai_configured = bool(os.environ.get("OPENAI_API_KEY", "").strip())
             self.send_json({
                 "ok": True,
-                "aiConfigured": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
-                "model": os.environ.get("OPENAI_MODEL", "gpt-5-mini"),
+                "aiConfigured": gemini_configured or openai_configured,
+                "provider": "gemini" if gemini_configured else ("openai" if openai_configured else "none"),
+                "model": os.environ.get("GEMINI_MODEL", "gemini-2.5-flash") if gemini_configured else os.environ.get("OPENAI_MODEL", "gpt-5-mini"),
             })
             return
         super().do_GET()

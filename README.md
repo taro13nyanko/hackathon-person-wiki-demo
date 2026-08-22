@@ -8,13 +8,13 @@ GitHub Pagesでは `index.html` が公開入口です。人物ページの閲覧
 
 左側の「新規作成」と各人物ページの「編集」から、Wikipediaのように画面上で人物情報を追加・更新できます。編集内容は閲覧者のブラウザ内に保存され、公開版の共通データや他の閲覧者の画面は変更しません。共通データへ正式に反映する場合は、元の人物WikiフォルダをAIまたはコード編集で更新して再ビルドします。
 
-OpenAI APIはRender上のバックエンドから呼び出します。APIキーはブラウザやGitHub Pagesへ渡さず、RenderのSecretとして管理します。
+AI APIはRender上のバックエンドから呼び出します。`GEMINI_API_KEY` があれば無料枠のあるGeminiを優先し、未設定の場合だけOpenAIを使います。APIキーはブラウザやGitHub Pagesへ渡さず、RenderのSecretとして管理します。
 
 ## 公開AIバックエンド
 
 1. [Render Blueprint](https://render.com/deploy?repo=https://github.com/taro13nyanko/hackathon-person-wiki-demo)を開く
 2. GitHubでログインし、表示されたサービスを作成する
-3. `OPENAI_API_KEY` にOpenAI APIキーをSecretとして入力する
+3. `GEMINI_API_KEY` にGoogle AI StudioのAPIキーをSecretとして入力する
 4. デプロイ完了後、`https://people-wiki-fast-forward-api.onrender.com/api/health` が開くことを確認する
 
 公開サービスはGitHubへの更新を自動反映します。1つの接続元につき1分5回までに制限しています。Render側でサービス名を変更した場合は、`build_people_wiki.py` 内の公開API URLも同じURLへ変更してください。
