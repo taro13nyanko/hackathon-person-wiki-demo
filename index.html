@@ -13,21 +13,6 @@
 <meta name="apple-mobile-web-app-title" content="人物Wiki">
 <meta name="theme-color" content="#f8f9fa">
 <title>人物Wiki — デモ版</title>
-<!-- 2026-07-29: ビジュアルモード用の丸みのあるフォント（M PLUS Rounded 1c）をGoogle Fontsから読み込む。
-     読み込み失敗時・オフライン時はCSS側のシステムフォントへ自動フォールバックする。 -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap" rel="stylesheet">
-<script>
-// 2026-07-29: ビジュアルモードのFOUC（一瞬だけ標準テーマが表示されてから切り替わる現象）を防ぐため、
-// CSSより前・<body>描画より前に判定してhtml要素へclassを付与する（従来のダークモードを廃止し置き換え）。
-(function(){
-  try {
-    var pref = localStorage.getItem('wikiVisual');
-    if(pref === '1') document.documentElement.classList.add('visual');
-  } catch(e){}
-})();
-</script>
 <style>
   :root{
     --wiki-bg:#fff; --wiki-border:#a2a9b1; --wiki-link:#0645ad; --wiki-visited:#0b0080;
@@ -373,7 +358,7 @@
 <body>
 <div id="layout">
   <div id="sidebar">
-    <h2><span class="wiki-title-text" onclick="goHome()" title="ホームへ戻る">人物Wiki</span><span id="lastUpdateBadge" class="last-update-badge" title="2026-08-22 15:00（制作チーム）">最終更新: 制作チーム</span><span class="wiki-title-actions"><button id="visualToggle" onclick="toggleVisualMode()" title="ビジュアルモード切替">🎨</button><button id="menuToggle" onclick="toggleSidebar()">絞り込み</button></span></h2>
+    <h2><span class="wiki-title-text" onclick="goHome()" title="ホームへ戻る">人物Wiki</span><span id="lastUpdateBadge" class="last-update-badge" title="2026-08-22 15:02（制作チーム）">最終更新: 制作チーム</span><span class="wiki-title-actions"><button id="menuToggle" onclick="toggleSidebar()">絞り込み</button></span></h2>
     <input id="search" placeholder="名前・本文で検索..." oninput="renderList()">
     <div id="toolbar">
       <button id="aiSuggestBtn" data-toolbar-key="aiSuggest" onclick="showAiSuggestions()" title="AIからの提案">💡</button>
@@ -631,19 +616,6 @@ function toggleFilterPanel(){
 // 2026-07-29: 従来のダークモードを廃止し、代わりに「ビジュアルモード」を追加（ユーザー要望）。
 // 配色を反転させるのではなく、カード型インフォボックス・タイムライン履歴・ピル型ツールバーなど
 // レイアウト面を作り込んだ見た目に切り替える。
-function applyVisualModeIcon(){
-  const btn = document.getElementById("visualToggle");
-  if(!btn) return;
-  const on = document.documentElement.classList.contains("visual");
-  btn.classList.toggle("active", on);
-  btn.title = on ? "標準モードに切り替え" : "ビジュアルモードに切り替え";
-}
-function toggleVisualMode(){
-  document.documentElement.classList.toggle("visual");
-  try { localStorage.setItem("wikiVisual", document.documentElement.classList.contains("visual") ? "1" : "0"); } catch(e){}
-  applyVisualModeIcon();
-}
-
 // 2026-07-29: カテゴリ名の文字列から簡易ハッシュで固定パレットの色を割り当てる。
 // entities/people/配下のサブフォルダ名がそのままカテゴリ名になる仕組み（新フォルダを追加しても
 // このコードを変更しなくて済むよう、カテゴリ名のハードコードは避ける）。
@@ -2330,16 +2302,6 @@ function showArticle(id){
     return id2 ? `<a class="wikilink" onclick="showArticle('${id2.replace(/'/g,"\\'")}')">${escapeHtml(dispName(name))}</a>` : "";
   }).filter(Boolean).join("") : "";
 
-  // 2026-07-26: 逆リンク（このページを[[wikilink]]で参照している他のページ）。
-  // 名前順（五十音順）に揃えて表示する。
-  const backlinkRecs = (r.backlinks || []).map(bid => byId[bid]).filter(Boolean)
-    .sort((a,b) => a.title.localeCompare(b.title, 'ja'));
-  const backlinksHtml = backlinkRecs.length
-    ? `<h3>このページを参照しているページ（${backlinkRecs.length}件）</h3><div id="backlinks">${
-        backlinkRecs.map(b => `<a class="wikilink" onclick="showArticle('${b.id.replace(/'/g,"\\'")}')">${escapeHtml(dispName(b.title))}</a>`).join("")
-      }</div>`
-    : "";
-
   const isFeatured = featuredIds.has(id);
   // 本文セクションはlinkify()（wikilink変換）の後にwithFootnoteRefs()（[^N]ジャンプリンク化）をかける。
   // footnoteOcc（上でinfobox構築時にも共有済み）にこの時点で各[^N]の出現箇所idが記録されるので、
@@ -2366,7 +2328,6 @@ function showArticle(id){
     <div class="summary">${linkify(r.summary)}</div>
     ${bodyHtml}
     ${related ? `<h3>関連</h3><div id="related">${related}</div>` : ""}
-    ${backlinksHtml}
     ${footnotesHtml}
   `;
   document.getElementById("main").scrollTop = 0;
@@ -2444,7 +2405,6 @@ function init(){
   if(structureBtn){
     structureBtn.title = `このWikiの構造（${records.length}ページ / raw生データ${rawFiles.length}件）`;
   }
-  applyVisualModeIcon();
   if(window.innerWidth <= 760){
     document.getElementById("sidebar").classList.add("collapsed");
   }
