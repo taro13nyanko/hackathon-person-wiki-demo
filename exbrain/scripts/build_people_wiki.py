@@ -1418,12 +1418,9 @@ html = r"""<!DOCTYPE html>
   .ff-slide-title{font-size:34px;line-height:1.25;margin:0 0 20px;max-width:700px;}
   .ff-slide-text{font-size:18px;line-height:1.85;max-width:700px;white-space:pre-line;color:#f1f5f9;}
   .ff-people{margin-top:22px;font-size:13px;color:#cbd5e1;}
-  .ff-controls{display:flex;align-items:center;gap:8px;margin-top:16px;}
-  .ff-controls button{border:1px solid var(--wiki-border);background:#fff;border-radius:999px;padding:7px 13px;cursor:pointer;}
   .ff-progress{flex:1;height:5px;border-radius:999px;background:#dfe3e8;overflow:hidden;}
   .ff-progress span{display:block;height:100%;background:#111827;transition:width .3s ease;}
   .ff-counter{font-size:12px;color:#667085;min-width:48px;text-align:right;}
-  .ff-action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
   .ff-notice{margin:12px 0;padding:10px 12px;border-radius:8px;background:#fff7d6;color:#5f4b00;font-size:13px;}
   .ff-modal-backdrop{position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;padding:20px;}
   .ff-modal-backdrop.hidden{display:none;}
@@ -2195,14 +2192,6 @@ function displayFastForwardDeck(){
     <div class="ff-shell">
       <div class="ff-topbar"><div><div class="ff-kicker">≫ TIME COMPRESSION</div><h1 style="margin:4px 0 0;">早送り</h1></div><button class="star-btn" onclick="history.back()">元のページへ戻る</button></div>
       <div id="ffStage" class="ff-stage"><div id="ffSlideBody" class="ff-slide-body"></div></div>
-      <div class="ff-controls">
-        <button onclick="ffMove(-1)" title="前へ">‹</button>
-        <button id="ffPlayBtn" onclick="toggleFastForward()">一時停止</button>
-        <button onclick="ffMove(1)" title="次へ">›</button>
-        <div class="ff-progress"><span id="ffProgress"></span></div>
-        <div id="ffCounter" class="ff-counter"></div>
-      </div>
-      <div class="ff-action-row"><button class="star-btn" onclick="openFastForwardConfig(ffContext.kind,ffContext.value,true)">⚙ 条件を変更</button><button class="star-btn" onclick="regenerateFastForward()">↻ 再生成</button><button id="ffEditBtn" class="star-btn" onclick="toggleFastForwardEditing()">✎ 文章を編集</button></div>
       <div class="ff-notice">${escapeHtml(ffStatusNotice)}</div>
     </div>`;
   document.getElementById("main").scrollTop = 0;
@@ -2222,8 +2211,6 @@ function renderFastForwardSlide(){
   body.innerHTML = `<div class="ff-year">${escapeHtml(s.year)}</div>${s.title ? `<h2 class="ff-slide-title" ${ffEditing?'contenteditable="true"':''} oninput="updateCurrentSlide('title',this.innerText)">${escapeHtml(s.title)}</h2>` : ""}<div class="ff-slide-text" ${ffEditing?'contenteditable="true"':''} oninput="updateCurrentSlide('text',this.innerText)">${escapeHtml(s.text)}</div>${s.people ? `<div class="ff-people">${escapeHtml(s.people)}</div>` : ""}${s.sources?.length ? `<div class="ff-sources">根拠: ${s.sources.map(escapeHtml).join(" / ")}</div>` : ""}`;
   stage.classList.toggle("ff-editing", ffEditing);
   stage.classList.add("ff-animate");
-  document.getElementById("ffProgress").style.width = `${((ffIndex + 1) / ffDeck.length) * 100}%`;
-  document.getElementById("ffCounter").textContent = `${ffIndex + 1} / ${ffDeck.length}`;
 }
 
 function ffMove(delta){
